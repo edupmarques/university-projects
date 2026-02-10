@@ -44,8 +44,7 @@ UniversityProjects/
 #### **C/C++ Projects**
 
 - **Communication Networks** — School Classes Management Program  
-  *Technologies:* TCP, UDP, Multicast, Docker
-  
+  *Technologies:* TCP, UDP, Multicast, Docker  
   A distributed system for managing school classes with network communication protocols
 
 - **Computer Graphics** — Snake Game  
