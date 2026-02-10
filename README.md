@@ -113,7 +113,7 @@ UniversityProjects/
 
 ## 📖 Usage
 
-Each project directory contains its own documentation and setup instructions where applicable. Navigate to individual project folders for specific implementation details.
+Each project directory contains its own documentation. Navigate to individual project folders for specific implementation details.
 
 ---
 
