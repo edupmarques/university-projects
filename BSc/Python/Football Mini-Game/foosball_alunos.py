@@ -1,0 +1,350 @@
+# André Cardoso 2022222265
+# Eduardo Marques 20222231584
+
+import turtle as t
+import functools
+import random
+
+LARGURA_JANELA = 1024
+ALTURA_JANELA = 600
+DEFAULT_TURTLE_SIZE = 40
+DEFAULT_TURTLE_SCALE = 3
+RAIO_JOGADOR = DEFAULT_TURTLE_SIZE / DEFAULT_TURTLE_SCALE
+RAIO_BOLA = DEFAULT_TURTLE_SIZE / 2
+PIXEIS_MOVIMENTO = 50
+LADO_MAIOR_AREA = ALTURA_JANELA / 3
+LADO_MENOR_AREA = 50
+RAIO_MEIO_CAMPO = LADO_MAIOR_AREA / 4
+START_POS_BALIZAS = ALTURA_JANELA / 4
+BOLA_START_POS = (0,0)
+
+def goto(x,y):
+    
+    t.penup()
+    t.setpos(x,y)
+    t.pendown()
+    
+def retangulo():
+    
+    goto(-LARGURA_JANELA/2,-ALTURA_JANELA/2)
+    t.goto(LARGURA_JANELA/2,-ALTURA_JANELA/2)
+    t.goto(LARGURA_JANELA/2,ALTURA_JANELA/2)
+    t.goto(-LARGURA_JANELA/2,ALTURA_JANELA/2)
+    t.goto(-LARGURA_JANELA/2,-ALTURA_JANELA/2)
+    
+def baliza(x,y,heading,largura,altura):
+    
+    goto(x,y)
+    t.seth(heading)
+    t.fd(largura)
+    t.seth(90)
+    t.fd(altura)
+    t.seth(heading+180)
+    t.fd(largura)    
+    
+def jogador_cima(estado_jogo, jogador):
+    
+    jogador_atual = estado_jogo[jogador]
+    jogador_atual.sety(jogador_atual.ycor() + PIXEIS_MOVIMENTO)
+    
+def jogador_baixo(estado_jogo, jogador):
+    
+    jogador_atual = estado_jogo[jogador]
+    jogador_atual.sety(jogador_atual.ycor() - PIXEIS_MOVIMENTO)
+    
+def jogador_direita(estado_jogo, jogador):
+    
+    jogador_atual = estado_jogo[jogador]
+    jogador_atual.setx(jogador_atual.xcor() + PIXEIS_MOVIMENTO)
+
+def jogador_esquerda(estado_jogo, jogador):
+    
+    jogador_atual = estado_jogo[jogador]
+    jogador_atual.setx(jogador_atual.xcor() - PIXEIS_MOVIMENTO)
+
+def desenha_linhas_campo():
+    
+    t.pencolor('white')
+    t.width(8) 
+    retangulo()
+    goto(0,-ALTURA_JANELA/2)
+    t.seth(90)
+    t.fd(ALTURA_JANELA)
+    goto(0,-RAIO_MEIO_CAMPO)
+    t.seth(0)
+    t.circle(RAIO_MEIO_CAMPO)
+    baliza(-LARGURA_JANELA/2,-LADO_MAIOR_AREA/2,0,LADO_MENOR_AREA,LADO_MAIOR_AREA)
+    baliza(LARGURA_JANELA/2,-LADO_MAIOR_AREA/2,180,LADO_MENOR_AREA,LADO_MAIOR_AREA)
+    t.hideturtle()
+
+def criar_bola():
+    
+    dicio= {}
+    random_x = random.uniform(-0.50,0.50)
+    random_y = random.uniform(-0.50,0.50)
+    bola = t.Turtle()
+    bola.pu()
+    bola.setpos(BOLA_START_POS)
+    bola.color('black')
+    bola.shape('circle')
+    dicio['bola'] = bola
+    dicio['direcao_x'] = random_x
+    dicio['direcao_y'] = random_y
+    dicio['posicao_anterior'] = None
+
+    return dicio
+
+def cria_jogador(x_pos_inicial, y_pos_inicial, cor):
+    
+    jogador = t.Turtle()
+    jogador.speed(1)
+    jogador.penup()
+    jogador.color(cor)
+    jogador.shapesize(stretch_wid=DEFAULT_TURTLE_SCALE, stretch_len=DEFAULT_TURTLE_SCALE)
+    jogador.shape('circle')
+    jogador.setpos(x_pos_inicial,y_pos_inicial)
+    
+    return jogador
+
+def init_state():
+    
+    estado_jogo = {}
+    estado_jogo['bola'] = None
+    estado_jogo['jogador_vermelho'] = None
+    estado_jogo['jogador_azul'] = None
+    estado_jogo['var'] = {
+        'bola' : [],
+        'jogador_vermelho' : [],
+        'jogador_azul' : [],
+    }
+    estado_jogo['pontuacao_jogador_vermelho'] = 0
+    estado_jogo['pontuacao_jogador_azul'] = 0
+    
+    return estado_jogo
+
+def cria_janela():
+    
+    window = t.Screen()
+    window.title("Foosball Game")
+    window.bgcolor("green")
+    window.setup(width = LARGURA_JANELA,height = ALTURA_JANELA)
+    window.tracer(0)
+    
+    return window
+
+def cria_quadro_resultados():
+    
+    quadro = t.Turtle()
+    quadro.speed(0)
+    quadro.color("Blue")
+    quadro.penup()
+    quadro.hideturtle()
+    quadro.goto(0,260)
+    quadro.write("Player A: 0\t\tPlayer B: 0 ", align="center", font=('Monaco',24,"normal"))
+    
+    return quadro
+
+def terminar_jogo(estado_jogo):
+    
+    with open('historico_resultados.csv','a+') as fich:
+        contador = 0
+        if fich.tell() == 0:
+            fich.write('NJogo , JogadorVermelho , JogadorAzul \n')
+            contador = 1
+        else:
+            fich.seek(0,0)    
+            contador = len(fich.readlines())
+            
+        str_aux = str(contador) + ',' + str(estado_jogo['pontuacao_jogador_vermelho']) + ',' + str(estado_jogo['pontuacao_jogador_azul']) + '\n'
+        fich.write(str_aux)
+        
+    print("Adeus")
+    estado_jogo['janela'].bye()
+
+def setup(estado_jogo, jogar):
+    
+    janela = cria_janela()
+    janela.listen()
+    if jogar:
+        janela.onkeypress(functools.partial(jogador_cima, estado_jogo, 'jogador_vermelho') ,'w')
+        janela.onkeypress(functools.partial(jogador_baixo, estado_jogo, 'jogador_vermelho') ,'s')
+        janela.onkeypress(functools.partial(jogador_esquerda, estado_jogo, 'jogador_vermelho') ,'a')
+        janela.onkeypress(functools.partial(jogador_direita, estado_jogo, 'jogador_vermelho') ,'d')
+        janela.onkeypress(functools.partial(jogador_cima, estado_jogo, 'jogador_azul') ,'Up')
+        janela.onkeypress(functools.partial(jogador_baixo, estado_jogo, 'jogador_azul') ,'Down')
+        janela.onkeypress(functools.partial(jogador_esquerda, estado_jogo, 'jogador_azul') ,'Left')
+        janela.onkeypress(functools.partial(jogador_direita, estado_jogo, 'jogador_azul') ,'Right')
+        janela.onkeypress(functools.partial(terminar_jogo, estado_jogo) ,'Escape')
+        quadro = cria_quadro_resultados()
+        estado_jogo['quadro'] = quadro
+    desenha_linhas_campo()
+    bola = criar_bola()
+    jogador_vermelho = cria_jogador(-((ALTURA_JANELA / 2) + LADO_MENOR_AREA), 0, "red")
+    jogador_azul = cria_jogador(((ALTURA_JANELA / 2) + LADO_MENOR_AREA), 0, "blue")
+    estado_jogo['janela'] = janela
+    estado_jogo['bola'] = bola
+    estado_jogo['jogador_vermelho'] = jogador_vermelho
+    estado_jogo['jogador_azul'] = jogador_azul
+
+def update_board(estado_jogo):
+    
+    estado_jogo['quadro'].clear()
+    estado_jogo['quadro'].write("Player A: {}\t\tPlayer B: {} ".format(estado_jogo['pontuacao_jogador_vermelho'], estado_jogo['pontuacao_jogador_azul']),align="center",font=('Monaco',24,"normal"))
+
+def movimenta_bola(estado_jogo):
+ 
+    direcao_x = estado_jogo['bola']['direcao_x']
+    direcao_y = estado_jogo['bola']['direcao_y']
+    
+    posicao_anterior_x = estado_jogo['bola']['bola'].xcor()
+    posicao_anterior_y = estado_jogo['bola']['bola'].ycor()
+    
+    posicao_x = posicao_anterior_x + direcao_x
+    posicao_y = posicao_anterior_y + direcao_y
+    
+    if posicao_x > LARGURA_JANELA / 2 or posicao_x < -LARGURA_JANELA / 2:
+        direcao_x = -direcao_x  
+    if posicao_y > ALTURA_JANELA / 2 or posicao_y < -ALTURA_JANELA / 2:
+        direcao_y = -direcao_y  
+        
+    estado_jogo['bola']['direcao_x'] = direcao_x
+    estado_jogo['bola']['direcao_y'] = direcao_y    
+    estado_jogo['bola']['bola'].goto(posicao_x,posicao_y) 
+    estado_jogo['bola']['posicao_anterior'] = (posicao_anterior_x, posicao_anterior_y)   
+    
+def verifica_colisoes_ambiente(estado_jogo,jogador):
+    
+    jogador_atual = estado_jogo[jogador]
+    
+    if jogador_atual.xcor() > LARGURA_JANELA/2:
+        jogador_atual.setx((LARGURA_JANELA/2)-PIXEIS_MOVIMENTO)
+    elif jogador_atual.xcor() < -LARGURA_JANELA/2:
+        jogador_atual.setx((-LARGURA_JANELA/2)+PIXEIS_MOVIMENTO)
+
+    if jogador_atual.ycor() > ALTURA_JANELA/2:
+        jogador_atual.sety((ALTURA_JANELA/2)-PIXEIS_MOVIMENTO)
+    elif jogador_atual.ycor() < -ALTURA_JANELA/2:
+        jogador_atual.sety((-ALTURA_JANELA/2)+PIXEIS_MOVIMENTO)
+       
+lista_posicoes_bola = []
+lista_posicoes_vermelho = []
+lista_posicoes_azul = []
+
+def verifica_golo_jogador_vermelho(estado_jogo):
+    
+    pos_bola_x = estado_jogo['bola']['bola'].xcor()
+    pos_bola_y = estado_jogo['bola']['bola'].ycor()
+    lista_posicoes_bola.append((pos_bola_x, pos_bola_y))
+    pos_jogadorverm_x = estado_jogo['jogador_vermelho'].xcor()
+    pos_jogadorverm_y = estado_jogo['jogador_vermelho'].ycor()
+    lista_posicoes_vermelho.append((pos_jogadorverm_x,pos_jogadorverm_y))
+    pos_jogadorazul_x = estado_jogo['jogador_azul'].xcor()
+    pos_jogadorazul_y = estado_jogo['jogador_azul'].ycor()    
+    lista_posicoes_azul.append((pos_jogadorazul_x,pos_jogadorazul_y))
+    
+    nome_ficheiro = 'replay_golo_jv_' + str(estado_jogo['pontuacao_jogador_vermelho']) +  '_ja_' + str(estado_jogo['pontuacao_jogador_azul']) + '.txt'
+    
+    if estado_jogo['bola']['bola'].xcor() > LARGURA_JANELA / 2 and -LADO_MAIOR_AREA/2 < estado_jogo['bola']['bola'].ycor() < LADO_MAIOR_AREA/2:
+        estado_jogo['pontuacao_jogador_vermelho'] += 1  
+        estado_jogo['bola']['bola'].goto(BOLA_START_POS)
+        estado_jogo['bola']['direcao_x'] = random.uniform(-0.50, 0.50)
+        estado_jogo['bola']['direcao_y'] = random.uniform(-0.50, 0.50)
+        estado_jogo['jogador_vermelho'].goto(-((ALTURA_JANELA / 2) + LADO_MENOR_AREA),0)
+        estado_jogo['jogador_azul'].goto(((ALTURA_JANELA / 2) + LADO_MENOR_AREA),0)
+        
+    with open(nome_ficheiro, "w") as fich:
+        for posicao_bola in lista_posicoes_bola:
+            fich.write(str(posicao_bola[0]) + ',' + str(posicao_bola[1]) + ';')        
+        fich.write('\n')
+        for posicao_vermelho in lista_posicoes_vermelho:
+            fich.write(str(posicao_vermelho[0]) + ',' + str(posicao_vermelho[1]) + ';')
+        fich.write('\n')
+        for posicao_azul in lista_posicoes_azul:
+            fich.write(str(posicao_azul[0]) + ',' + str(posicao_azul[1]) + ';')                
+        
+lista_posicoes_bola = []
+lista_posicoes_vermelho = []
+lista_posicoes_azul = []
+
+def verifica_golo_jogador_azul(estado_jogo):
+    
+    pos_bola_x = estado_jogo['bola']['bola'].xcor()
+    pos_bola_y = estado_jogo['bola']['bola'].ycor()
+    lista_posicoes_bola.append((pos_bola_x, pos_bola_y))
+    pos_jogadorverm_x = estado_jogo['jogador_vermelho'].xcor()
+    pos_jogadorverm_y = estado_jogo['jogador_vermelho'].ycor()
+    lista_posicoes_vermelho.append((pos_jogadorverm_x,pos_jogadorverm_y))
+    pos_jogadorazul_x = estado_jogo['jogador_azul'].xcor()
+    pos_jogadorazul_y = estado_jogo['jogador_azul'].ycor()    
+    lista_posicoes_azul.append((pos_jogadorazul_x,pos_jogadorazul_y))
+    
+    nome_ficheiro = 'replay_golo_jv_' + str(estado_jogo['pontuacao_jogador_vermelho']) +  '_ja_' + str(estado_jogo['pontuacao_jogador_azul']) + '.txt'
+    
+    if estado_jogo['bola']['bola'].xcor() < -LARGURA_JANELA / 2 and -LADO_MAIOR_AREA/2 < estado_jogo['bola']['bola'].ycor() < LADO_MAIOR_AREA/2:
+        estado_jogo['pontuacao_jogador_azul'] += 1  
+        estado_jogo['bola']['bola'].goto(BOLA_START_POS)
+        estado_jogo['bola']['direcao_x'] = random.uniform(-0.50, 0.50)
+        estado_jogo['bola']['direcao_y'] = random.uniform(-0.50, 0.50)        
+        estado_jogo['jogador_vermelho'].goto(-((ALTURA_JANELA / 2) + LADO_MENOR_AREA),0)
+        estado_jogo['jogador_azul'].goto(((ALTURA_JANELA / 2) + LADO_MENOR_AREA),0)
+        
+    with open(nome_ficheiro, "w") as fich:
+        for posicao_bola in lista_posicoes_bola:
+            fich.write(str(posicao_bola[0]) + ',' + str(posicao_bola[1]) + ';')        
+        fich.write('\n')
+        for posicao_vermelho in lista_posicoes_vermelho:
+            fich.write(str(posicao_vermelho[0]) + ',' + str(posicao_vermelho[1]) + ';')
+        fich.write('\n')
+        for posicao_azul in lista_posicoes_azul:
+            fich.write(str(posicao_azul[0]) + ',' + str(posicao_azul[1]) + ';')
+        
+def verifica_golos(estado_jogo):
+    
+    verifica_golo_jogador_vermelho(estado_jogo)
+    verifica_golo_jogador_azul(estado_jogo)
+    update_board(estado_jogo)
+
+def verifica_toque_jogador_azul(estado_jogo):
+    
+    posicao_bola = estado_jogo['bola']['bola'].pos()
+    posicao_jogador_vermelho = estado_jogo['jogador_azul'].pos()
+    distancia_bola_vermelho = estado_jogo['bola']['bola'].distance(estado_jogo['jogador_azul'])
+
+    if distancia_bola_vermelho < RAIO_BOLA + RAIO_JOGADOR:
+        estado_jogo['bola']['direcao_x'] = -estado_jogo['bola']['direcao_x']
+        estado_jogo['bola']['direcao_y'] = estado_jogo['bola']['direcao_y'] 
+
+def verifica_toque_jogador_vermelho(estado_jogo):
+    
+    posicao_bola = estado_jogo['bola']['bola'].pos()
+    posicao_jogador_vermelho = estado_jogo['jogador_vermelho'].pos()
+    distancia_bola_vermelho = estado_jogo['bola']['bola'].distance(estado_jogo['jogador_vermelho'])
+
+    if distancia_bola_vermelho < RAIO_BOLA + RAIO_JOGADOR:
+        estado_jogo['bola']['direcao_x'] = -estado_jogo['bola']['direcao_x']
+        estado_jogo['bola']['direcao_y'] = estado_jogo['bola']['direcao_y']    
+
+def guarda_posicoes_para_var(estado_jogo):
+    
+    estado_jogo['var']['bola'].append(estado_jogo['bola']['bola'].pos())
+    estado_jogo['var']['jogador_vermelho'].append(estado_jogo['jogador_vermelho'].pos())
+    estado_jogo['var']['jogador_azul'].append(estado_jogo['jogador_azul'].pos())
+
+def main():
+    
+    estado_jogo = init_state()
+    setup(estado_jogo, True)
+    while True:
+        estado_jogo['janela'].update()
+        if estado_jogo['bola'] is not None:
+            movimenta_bola(estado_jogo)
+        verifica_colisoes_ambiente(estado_jogo,'jogador_vermelho')
+        verifica_colisoes_ambiente(estado_jogo,'jogador_azul')
+        verifica_golos(estado_jogo)
+        if estado_jogo['jogador_vermelho'] is not None:
+            verifica_toque_jogador_azul(estado_jogo)
+        if estado_jogo['jogador_azul'] is not None:
+            verifica_toque_jogador_vermelho(estado_jogo)
+
+if __name__ == '__main__':
+    main()
