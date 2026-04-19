@@ -30,14 +30,16 @@ workflow, while also setting up a full CI/CD pipeline.
 
 ## Project Structure
 
+```
 filmhub-project/
-├── api/              # Django REST API
-├── filmhub/          # Django project settings
-├── frontend/         # React application
-├── .github/workflows # CI/CD pipeline (GitHub Actions)
+├── api/                     # Django REST API
+├── filmhub/                 # Django project settings
+├── frontend/                # React application
+├── .github/workflows        # CI/CD pipeline (GitHub Actions)
 ├── Dockerfile
 ├── docker-compose.yml
 └── Makefile
+```
 
 ## Running Locally
 
