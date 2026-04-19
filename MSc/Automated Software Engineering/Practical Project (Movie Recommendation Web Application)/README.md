@@ -1,8 +1,7 @@
 # FilmHub — Movie Recommendation System
 
 > University project developed for the **Automated Software Engineering** course.
-> ⚠️ This repository contains only the **traditional development** implementation.  
-> The AI-assisted version is maintained in a separate repository.
+> ⚠️ This repository contains only the **traditional development** implementation. The AI-assisted version is maintained in a separate repository.
 > Group repository: [filmhub-project](https://github.com/martinresplandy/filmhub-project)
 
 ## About the Project
