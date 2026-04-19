@@ -28,12 +28,14 @@ a CI/CD pipeline all tracked in the repository.
 
 ## Project Structure
 
+```
 Gestao-de-Projetos/
-├── fundapecas-mobile-app/  # React Native mobile application
-├── backend/                # Python backend API
-├── Planeamento/            # Planning documents
-├── Reuniões/               # Meeting notes
-└── .github/workflows/      # CI/CD pipeline
+├── fundapecas-mobile-app/   # React Native mobile application
+├── backend/                 # Python backend API
+├── Planeamento/             # Planning documents
+├── Reuniões/                # Meeting notes
+└── .github/workflows/       # CI/CD pipeline
+```
 
 ## My Contributions
 
