@@ -1,0 +1,252 @@
+// Digital Wallet System with Formal Specification and Verification
+// All monetary values use fixed-point arithmetic (cents) for precision
+// 
+// This system implements a secure digital wallet with:
+// - Multi-user account management
+// - PIN-based authentication with lockout protection
+// - Fund conservation guarantees for transfers
+// - Interest calculation using fixed-point arithmetic
+
+// ============================================================
+// System Constants
+// ============================================================
+const MAX_WRONG_ATTEMPTS: int := 3          // Lock account after 3 failed attempts
+const INTEREST_RATE_NUMERATOR: int := 5     // 5% interest rate (numerator)
+const INTEREST_RATE_DENOMINATOR: int := 100 // Interest rate denominator
+
+class DigitalWallet {
+  // Core data structures as specified in the architecture
+  var balances: map<int, int>           // Maps user ID to balance (in cents)
+  var pins: map<int, int>               // Maps user ID to PIN
+  var wrongAttempts: map<int, int>      // Maps user ID to consecutive wrong attempts
+
+  // Ghost variable for verification: tracks total funds in the system
+  ghost var totalFunds: int
+
+  ghost predicate Valid()
+    reads this
+  {
+    // All balances must be non-negative (data integrity)
+    (forall id :: id in balances ==> balances[id] >= 0) &&
+    // All wrong attempts are non-negative
+    (forall id :: id in wrongAttempts ==> wrongAttempts[id] >= 0) &&
+    // All users with balances must have PINs (security)
+    (forall id :: id in balances ==> id in pins) &&
+    // All users with PINs must have wrong attempts tracking (security)
+    (forall id :: id in pins ==> id in wrongAttempts)
+  }
+
+  constructor()
+    ensures Valid()
+    ensures balances == map[]
+    ensures pins == map[]
+    ensures wrongAttempts == map[]
+    ensures totalFunds == 0
+  {
+    balances := map[];
+    pins := map[];
+    wrongAttempts := map[];
+    totalFunds := 0;
+  }
+
+
+  // Check if account exists (all three data structures have the user)
+  predicate AccountExists(userId: int)
+    reads this
+  {
+    userId in balances && userId in pins && userId in wrongAttempts
+  }
+
+  // Check if account is locked due to too many failed attempts
+  predicate IsLocked(userId: int)
+    reads this
+    requires userId in wrongAttempts
+  {
+    wrongAttempts[userId] >= MAX_WRONG_ATTEMPTS
+  }
+
+  method NewAccount(userId: int, pin: int, initialDeposit: int) returns (success: bool)
+    requires Valid()
+    requires initialDeposit >= 0    // Initial deposit must be non-negative
+    requires pin >= 0               // PIN must be non-negative
+    modifies this
+    ensures Valid()
+    // Success case: account didn't exist before
+    ensures success <==> (userId !in old(balances))
+    // If successful, account is created with correct values
+    ensures success ==> userId in balances
+    ensures success ==> userId in pins
+    ensures success ==> userId in wrongAttempts
+    ensures success ==> balances[userId] == initialDeposit
+    ensures success ==> pins[userId] == pin
+    ensures success ==> wrongAttempts[userId] == 0
+    // If successful, total funds increase by initial deposit
+    ensures success ==> totalFunds == old(totalFunds) + initialDeposit
+    // If failed, nothing changes (atomicity)
+    ensures !success ==>
+              balances == old(balances) &&
+              pins == old(pins) &&
+              wrongAttempts == old(wrongAttempts) &&
+              totalFunds == old(totalFunds)
+    // Other accounts are unaffected
+    ensures forall id :: id in old(balances) ==> id in balances && balances[id] == old(balances)[id]
+  {
+    if userId in balances {
+      // Account already exists
+      success := false;
+    } else {
+      // Create new account
+      // MAP SYNTAX, CREATE A NEW MAP WITH THE userID index ASSIGNED WITH A NEW VALUE 
+      balances := balances[userId := initialDeposit];
+      pins := pins[userId := pin];
+      wrongAttempts := wrongAttempts[userId := 0];
+      totalFunds := totalFunds + initialDeposit;
+      success := true;
+    }
+  }
+
+  method Authenticate(userId: int, pin: int) returns (success: bool)
+    requires Valid()
+    requires AccountExists(userId)
+    modifies this
+    ensures Valid()
+    // Total funds never change during authentication (conservation)
+    ensures totalFunds == old(totalFunds)
+    ensures balances == old(balances)
+    ensures pins == old(pins)
+    // User still exists
+    ensures userId in wrongAttempts
+    // If account was already locked, authentication fails
+    ensures old(IsLocked(userId)) ==> !success
+    // If account was not locked and PIN is correct, authentication succeeds
+    ensures !old(IsLocked(userId)) && pin == old(pins)[userId] ==>
+              success && wrongAttempts[userId] == 0
+    // If account was not locked and PIN is wrong, authentication fails
+    // and wrong attempts counter increments
+    ensures !old(IsLocked(userId)) && pin != old(pins)[userId] ==>
+              !success && wrongAttempts[userId] == old(wrongAttempts)[userId] + 1
+    // Other users' wrong attempts are unchanged
+    ensures forall id :: id in old(wrongAttempts) ==> id in wrongAttempts
+    ensures forall id :: id in old(wrongAttempts) && id != userId ==> wrongAttempts[id] == old(wrongAttempts)[id]
+  {
+    if wrongAttempts[userId] >= MAX_WRONG_ATTEMPTS {
+      // Account is locked - reject authentication
+      success := false;
+    } else if pins[userId] == pin {
+      // Correct PIN - reset wrong attempts counter
+      wrongAttempts := wrongAttempts[userId := 0];
+      success := true;
+    } else {
+      // Wrong PIN - increment wrong attempts counter
+      wrongAttempts := wrongAttempts[userId := wrongAttempts[userId] + 1];
+      success := false;
+    }
+  }
+
+  method GetBalance(userId: int) returns (balance: int)
+    requires Valid()
+    requires AccountExists(userId)
+    // Returns exactly the balance stored
+    ensures balance == balances[userId]
+    // Balance is always non-negative (from Valid invariant)
+    ensures balance >= 0
+  {
+    balance := balances[userId];
+  }
+
+  method Credit(userId: int, amount: int)
+    requires Valid()
+    requires AccountExists(userId)
+    requires amount > 0              // Must deposit a positive amount
+    modifies this
+    ensures Valid()
+    // User still in domain
+    ensures userId in balances
+    // Balance increases by exactly the credited amount (accuracy)
+    ensures balances[userId] == old(balances)[userId] + amount
+    // Total funds increase by exactly the credited amount (conservation)
+    ensures totalFunds == old(totalFunds) + amount
+    // Other accounts are unchanged
+    ensures forall id :: id in old(balances) ==> id in balances
+    ensures forall id :: id in old(balances) && id != userId ==>
+                           balances[id] == old(balances)[id]
+    // PINs and wrong attempts are unchanged (no side effects)
+    ensures pins == old(pins)
+    ensures wrongAttempts == old(wrongAttempts)
+  {
+    balances := balances[userId := balances[userId] + amount];
+    totalFunds := totalFunds + amount;
+  }
+
+  method Transfer(fromId: int, toId: int, amount: int) returns (success: bool)
+    requires Valid()
+    requires AccountExists(fromId)
+    requires AccountExists(toId)
+    requires fromId != toId          // Cannot transfer to self
+    requires amount > 0              // Must transfer positive amount
+    modifies this
+    ensures Valid()
+    // Users still in domain
+    ensures fromId in balances && toId in balances
+    // Success only if sender had sufficient funds
+    ensures success <==> old(balances)[fromId] >= amount
+    // If successful, sender's balance decreases by exact amount
+    ensures success ==> balances[fromId] == old(balances)[fromId] - amount
+    // If successful, receiver's balance increases by exact amount
+    ensures success ==> balances[toId] == old(balances)[toId] + amount
+    // CONSERVATION OF FUNDS: total funds unchanged on transfer
+    ensures totalFunds == old(totalFunds)
+    // If failed, no balances change (atomicity)
+    ensures !success ==> balances == old(balances)
+    // Other accounts are unchanged
+    ensures forall id :: id in old(balances) ==> id in balances
+    ensures forall id :: id in old(balances) && id != fromId && id != toId ==>
+                           balances[id] == old(balances)[id]
+    // PINs and wrong attempts are unchanged
+    ensures pins == old(pins)
+    ensures wrongAttempts == old(wrongAttempts)
+  {
+    if balances[fromId] >= amount {
+      // Sufficient funds - perform atomic transfer
+      var newFromBalance := balances[fromId] - amount;
+      var newToBalance := balances[toId] + amount;
+      balances := balances[fromId := newFromBalance][toId := newToBalance];
+      // totalFunds remains unchanged: -amount + amount = 0
+      success := true;
+    } else {
+      // Insufficient funds
+      success := false;
+    }
+  }
+
+  method AddInterest(userId: int) returns (interestAdded: int)
+    requires Valid()
+    requires AccountExists(userId)
+    modifies this
+    ensures Valid()
+    // User still in domain
+    ensures userId in balances
+    // Interest is calculated correctly using fixed-point arithmetic
+    ensures interestAdded == (old(balances)[userId] * INTEREST_RATE_NUMERATOR) / INTEREST_RATE_DENOMINATOR
+    // Balance increases by exactly the interest amount
+    ensures balances[userId] == old(balances)[userId] + interestAdded
+    // Total funds increase by the interest (controlled money creation)
+    ensures totalFunds == old(totalFunds) + interestAdded
+    // Interest is non-negative (because balance is non-negative)
+    ensures interestAdded >= 0
+    // Other accounts are unchanged
+    ensures forall id :: id in old(balances) ==> id in balances
+    ensures forall id :: id in old(balances) && id != userId ==>
+                           balances[id] == old(balances)[id]
+    // PINs and wrong attempts are unchanged
+    ensures pins == old(pins)
+    ensures wrongAttempts == old(wrongAttempts)
+  {
+    var currentBalance := balances[userId];
+    // Fixed-point arithmetic: multiply first, then divide
+    interestAdded := (currentBalance * INTEREST_RATE_NUMERATOR) / INTEREST_RATE_DENOMINATOR;
+
+    balances := balances[userId := currentBalance + interestAdded];
+    totalFunds := totalFunds + interestAdded;
+  }
+}

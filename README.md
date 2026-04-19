@@ -32,14 +32,22 @@ UniversityProjects/
 │       ├── Information Theory/
 │       └── Multimedia/
 └── MSc/
-    └── Machine Learning/
+    ├── Automated Software Engineering/
+    ├── Machine Learning/
+    ├── Project Management/
+    ├── Software Architecture/
+    └── Software Requirements and Specifications/
 ```
+
+---
 
 ---
 
 ## 📚 Repository Structure
 
 ### 🔷 Bachelor's Degree (BSc)
+
+> Projects are organized by programming language.
 
 #### **C/C++ Projects**
 
@@ -53,7 +61,7 @@ UniversityProjects/
 - **Introduction to Procedural Programming** — Hospital Management System  
   Patient and healthcare facility management application
 
-- **Operating Systems** — Blockchain Operating System  
+- **Operative Systems** — Blockchain Operating System  
   Custom OS implementation with blockchain integration concepts
 
 #### **Compiler Design**
@@ -106,8 +114,28 @@ UniversityProjects/
 
 ### 🔶 Master's Degree (MSc)
 
+> Projects are organized by course.
+
+- **Automated Software Engineering**
+  - **FilmHub: Book/Movie Recommendation System**  
+    *Repository:* [filmhub-project](https://github.com/martinresplandy/filmhub-project)  
+    A movie recommendation web application built using two approaches: traditional development and AI-assisted development with LLMs. Includes a full CI/CD pipeline, containerized deployment, and a comparative analysis between both workflows.
+
+  - **Research Project** — Prompt Engineering Techniques for Ensuring Correctness in Code Generation  
+    Research paper analyzing techniques such as Structured Prompting, Few-shot Prompting, Chain-of-Thought, PAL, Tree of Thoughts, and ReAct to improve the reliability of LLM-generated code.
+
 - **Machine Learning** — Detecting Breast Cancer From Blood Samples  
   Advanced ML models for medical diagnosis using blood sample data analysis
+
+- **Project Management** — FundaPeças: Parts Management Mobile App  
+  *Repository:* [Gestao-de-Projetos](https://github.com/fabinho5/Gestao-de-Projetos)  
+  A mobile application developed for a real client (FundaPeças) to manage parts inventory and operations. Built with React Native and TypeScript by a large team following an agile workflow.
+
+- **Software Architecture** — Guardian: Privacy-First IoT Elder Care System  
+  An IoT-based active assistance system designed to support elderly individuals living alone. Built on a Microkernel + Event-Driven architecture integrated with Home Assistant, featuring behavioral anomaly detection, proactive automations (lighting, reminders, climate control), and caregiver alerts — all without the use of intrusive sensors.
+
+- **Software Requirements and Specifications** — Digital Wallet: Mobile Payment System RFP  
+  A comprehensive Request for Proposal (RFP) for a secure mobile financial application, following IEEE 29148-2018. Covers functional requirements (10 use cases: authentication, fund transfers, NFC/QR payments, deposits, withdrawals, and interest application), non-functional attributes (integrity, reliability, usability), database design, and regulatory compliance (GDPR, PCI DSS 4.0).
 
 ---
 
@@ -117,4 +145,4 @@ Each project directory contains its own documentation and setup instructions whe
 
 ---
 
-*Last Updated: February 2026*
+*Last Updated: April 2026*
